@@ -25,17 +25,29 @@
 
   var pendingResponseCollection = new Array();
 
-  window.onload = () =>{
-    console.log("Child window loaded")
+  window.onload = () => {
+    console.log("iframe loaded")
   }
 
-  function onClick(){
-    makeAjaxCall("functionName", "Outbound message body", (response)=>{ console.log(response)})
+  async function onClick(){
+    console.log("iframe makeing request")
+    makeAjaxCall("functionName", "Outbound message body").then((response)=>{
+      console.log("iframe got response: " + response)
+    })
+
+    // -or-
+
+    // let response = await makeAjaxCall("functionName", "Outbound message body")
+    // console.log("Got response: " + response)
   }
 
   //message channel child-side function established on startup 
-  onmessage = function(e) {
-    console.log("Established child port");
+  window.onmessage = (e) => {
+    //need to make sure the origin is the wire browser
+    // if (event.origin !== "http://")
+    //   return;
+
+    console.log("iframe port established");
     parentPort = e.ports[0];
 
     //now switch message handling to new function
@@ -50,22 +62,28 @@
     let responseItem = pendingResponseCollection.find(element => element.guid == response.guid)
 
     //respond
-    responseItem.callback(response.message)
+    responseItem.resolver(response.message)
     
-    //remove 
+    //remove the pending call
     let index = pendingResponseCollection.indexOf(responseItem);
-    if (index > -1) {
-      pendingResponseCollection.splice(index, 1);
-    }
+    if (index > -1) pendingResponseCollection.splice(index, 1);   
+
+    console.log("Remaining queued promises: " + pendingResponseCollection.length);
   }
 
   //client to wire web calling function
-  function makeAjaxCall(command, message, callback){
+  function makeAjaxCall(command, message){
     let guid = uuidv4();
-    let o = {command, guid, message};
 
-    pendingResponseCollection.push({guid, callback})
-    parentPort.postMessage(o);
+    let resolver;
+    let promise = new Promise((resolve, reject)=>{
+      resolver = (message) => resolve(message);
+    });
+    
+    pendingResponseCollection.push({guid, resolver});
+    parentPort.postMessage({command, guid, message});
+
+    return promise;
   }
 
   function uuidv4() {

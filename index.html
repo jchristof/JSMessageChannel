@@ -39,21 +39,23 @@
     
     function iframeLoaded() {  
       var channel = new MessageChannel();   
-        channel.port1.onmessage = requestFromIFrame;
-        ifr.contentWindow.postMessage("establish message channel", '*', [channel.port2]);      
+      channel.port1.onmessage = requestFromIFrame;
+      ifr.contentWindow.postMessage("establish message channel", '*', [channel.port2]);      
     }
 
     function requestFromIFrame(e){
-      console.log(e.data);
-
+      console.log("MC Wire got data: ");
+      console.log(e.data)
+      
       let guid = e.data.guid;
       let message = e.data.message;
 
-      respondToIFrame({guid, message})
+      //fake an async response
+      setTimeout(()=>{ respondToIFrame({guid, message}) }, Math.random() * 3000)     
     }
 
     function respondToIFrame(response){
-      console.log("responding")
+      console.log("MC Wire responding to iframe")
       var channel = new MessageChannel();
       otherWindow.postMessage(response, '*', [channel.port2]);
     }
