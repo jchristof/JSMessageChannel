@@ -14,21 +14,65 @@
   </head>
 
   <body>
+      <button onclick="onClick()">Send Message</button>
     <ul>
       
     </ul>
   </body>
   <script>
   var list = document.querySelector('ul');
+  var parentPort;
 
-  onmessage = function(e) {
-    var listItem = document.createElement('li');
-    listItem.textContent = e.data;
-  	list.appendChild(listItem);
-  	// e.ports[0] is channel.port2, sent from the main frame
-  	e.ports[0].postMessage('Message received by IFrame: "' + e.data + '"');
+  var pendingResponseCollection = new Array();
+
+  window.onload = () =>{
+    console.log("Child window loaded")
   }
-  
+
+  function onClick(){
+    makeAjaxCall("functionName", "Outbound message body", (response)=>{ console.log(response)})
+  }
+
+  //message channel child-side function established on startup 
+  onmessage = function(e) {
+    console.log("Established child port");
+    parentPort = e.ports[0];
+
+    //now switch message handling to new function
+    onmessage = responseFromMobileClient; 
+  }
+ 
+  //dispatched incomming message from mobile client by routing responses to the correct callback
+  function responseFromMobileClient(e){
+    let response = e.data;
+
+    //find the request we should respond to
+    let responseItem = pendingResponseCollection.find(element => element.guid == response.guid)
+
+    //respond
+    responseItem.callback(response.message)
+    
+    //remove 
+    let index = pendingResponseCollection.indexOf(responseItem);
+    if (index > -1) {
+      pendingResponseCollection.splice(index, 1);
+    }
+  }
+
+  //client to wire web calling function
+  function makeAjaxCall(command, message, callback){
+    let guid = uuidv4();
+    let o = {command, guid, message};
+
+    pendingResponseCollection.push({guid, callback})
+    parentPort.postMessage(o);
+  }
+
+  function uuidv4() {
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    )
+  }
 
   </script>
 </html>

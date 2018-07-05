@@ -37,19 +37,25 @@
 
     ifr.addEventListener("load", iframeLoaded, false);
     
-    function iframeLoaded() {
-      button.onclick = function(e) {
-        e.preventDefault();
-        
-        var channel = new MessageChannel();
-        otherWindow.postMessage(textInput.value, '*', [channel.port2]);
+    function iframeLoaded() {  
+      var channel = new MessageChannel();   
+        channel.port1.onmessage = requestFromIFrame;
+        ifr.contentWindow.postMessage("establish message channel", '*', [channel.port2]);      
+    }
 
-        channel.port1.onmessage = handleMessage;
-        function handleMessage(e) {
-          para.innerHTML = e.data;
-          textInput.value = '';
-        } 
-      }
+    function requestFromIFrame(e){
+      console.log(e.data);
+
+      let guid = e.data.guid;
+      let message = e.data.message;
+
+      respondToIFrame({guid, message})
+    }
+
+    function respondToIFrame(response){
+      console.log("responding")
+      var channel = new MessageChannel();
+      otherWindow.postMessage(response, '*', [channel.port2]);
     }
 
   </script>
