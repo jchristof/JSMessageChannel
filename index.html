@@ -16,17 +16,20 @@
   <body>
     <h1>Bi-directional multimessage message channel demo</h1>
 
+    <h2>This is the iframe element</h2>
     <iframe src="page2.html" width='480' height='320'>
+      
     </iframe>
+
+    <h2>This is the parent list</h2>
+    <ul></ul>
+
   </body>
   <script>
-    var para = document.querySelector('p');
-
-    var textInput = document.querySelector('.message-box');
-    var button = document.querySelector('button');
     
     var ifr = document.querySelector('iframe');
     var otherWindow = ifr.contentWindow;
+    var list = document.querySelector('ul');
 
     ifr.addEventListener("load", iframeLoaded, false);
     
@@ -37,18 +40,27 @@
     }
 
     function requestFromIFrame(e){
-      console.log("MC Wire got data: ");
+      console.log("Parent got data: ");
       console.log(e.data)
       
       let guid = e.data.guid;
       let message = e.data.message;
 
+      let listItem = document.createElement('li');
+      listItem.setAttribute("id", guid);
+      listItem.textContent = guid;
+      list.appendChild(listItem);
+
       //fake an async response
-      setTimeout(()=>{ respondToIFrame({guid, message}) }, Math.random() * 3000)     
+      setTimeout(()=>{ 
+        respondToIFrame({guid, message}) 
+        var listItem = document.getElementById(guid);
+        listItem.parentNode.removeChild(listItem);
+        }, Math.random() * 3000)     
     }
 
     function respondToIFrame(response){
-      console.log("MC Wire responding to iframe")
+      console.log("Parent responding to iframe")
       var channel = new MessageChannel();
       otherWindow.postMessage(response, '*', [channel.port2]);
     }

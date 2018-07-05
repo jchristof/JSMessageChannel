@@ -15,9 +15,7 @@
 
   <body>
       <button onclick="onClick()">Send Message</button>
-    <ul>
-      
-    </ul>
+    <ul></ul>
   </body>
   <script>
   var list = document.querySelector('ul');
@@ -30,7 +28,7 @@
   }
 
   async function onClick(){
-    console.log("iframe makeing request")
+    console.log("iframe making request")
     makeAjaxCall("functionName", "Outbound message body").then(response => console.log("iframe got response: " + response))
 
     // -or-
@@ -59,6 +57,9 @@
 
     //respond
     responseItem.resolver(response.message)
+
+    var listItem = document.getElementById(response.guid);
+    listItem.parentNode.removeChild(listItem);
     
     //remove the pending call
     let index = pendingResponseCollection.indexOf(responseItem);
@@ -70,6 +71,11 @@
   //client to wire web calling function
   function makeAjaxCall(command, message){
     let guid = uuidv4();
+
+    let listItem = document.createElement('li');
+    listItem.setAttribute("id", guid);
+    listItem.textContent = guid;
+    list.appendChild(listItem);
 
     let resolver;
     let promise = new Promise((resolve, reject)=>{
