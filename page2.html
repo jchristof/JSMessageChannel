@@ -44,10 +44,10 @@
 
   async function onClick(){
     console.log("iframe making request")
-    //makeAjaxCall("functionName", "Outbound message body").then(response => console.log("iframe got response: " + response))
+    //callFunction("functionName", "Outbound message body").then(response => console.log("iframe got response: " + response))
 
     // -or-
-    console.log("Got response: " + await makeAjaxCall("functionName", "Outbound message body"))
+    console.log("Got response: " + await callFunction("functionName", "Outbound message body"))
   }
  
   //dispatched incomming message from mobile client by routing responses to the correct callback
@@ -55,24 +55,29 @@
     let response = e.data;
 
     //find the request we should respond to
-    let responseItem = pendingResponseCollection.find(element => element.guid == response.guid)
+    let responseItem = pendingResponseCollection.find(element => element.guid == response.guid);
+    if(!responseItem) {
+      console.log(`${response.guid} is not an item of pending responses`);
+      return;
+    }
+    else {
+      //remove the pending response
+      let index = pendingResponseCollection.indexOf(responseItem)
+      pendingResponseCollection.splice(index, 1);  
+    }
 
-    //respond - resolve or reject
+    //respond - todo - resolve or reject
     responseItem.resolver(response.message)
     //responseItem.rejector(response.message)
 
     var listItem = document.getElementById(response.guid);
     listItem.parentNode.removeChild(listItem);
-    
-    //remove the pending call
-    let index = pendingResponseCollection.indexOf(responseItem);
-    if (index > -1) pendingResponseCollection.splice(index, 1);   
-
-    console.log("Remaining queued promises: " + pendingResponseCollection.length);
+   
+    console.log(`Remaining queued promises: ${pendingResponseCollection.length}`);
   }
 
   //client to wire web calling function
-  function makeAjaxCall(command, message){
+  function callFunction(command, message){
     //todo - stack overflow guid implementation
     let guid = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
