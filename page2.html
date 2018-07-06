@@ -18,10 +18,10 @@
     <ul></ul>
   </body>
   <script>
-  var list = document.querySelector('ul');
-  var parentPort;
+  let list = document.querySelector('ul');
+  let parentPort;
 
-  var pendingResponseCollection = new Array();
+  let pendingResponseCollection = new Array();
 
   window.onload = () => {
     console.log("iframe loaded")
@@ -45,7 +45,7 @@
     parentPort = e.ports[0];
 
     //now switch message handling to new function
-    onmessage = responseFromMobileClient; 
+    parentPort.onmessage = responseFromMobileClient; 
   }
  
   //dispatched incomming message from mobile client by routing responses to the correct callback
