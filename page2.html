@@ -18,34 +18,36 @@
     <ul></ul>
   </body>
   <script>
+
   let list = document.querySelector('ul');
   let parentPort;
-
   let pendingResponseCollection = new Array();
 
-  window.onload = () => {
-    console.log("iframe loaded")
-  }
-
-  async function onClick(){
-    console.log("iframe making request")
-    makeAjaxCall("functionName", "Outbound message body").then(response => console.log("iframe got response: " + response))
-
-    // -or-
-    //console.log("Got response: " + await makeAjaxCall("functionName", "Outbound message body"))
-  }
-
-  //message channel child-side function established on startup 
-  window.onmessage = (e) => {
-    //todo - important - need to make sure the origin is the wire browser
+  let messageChannelInitializer = (e) => {
+    //todo check for correct origin
     // if (event.origin !== "http://")
     //   return;
 
-    console.log("iframe port established");
+    if(!e.ports)
+      return;
+      
     parentPort = e.ports[0];
-
-    //now switch message handling to new function
     parentPort.onmessage = responseFromMobileClient; 
+
+    window.removeEventListener('message', messageChannelInitializer);
+
+    console.log("iframe port established");
+  }
+
+  window.addEventListener('message', messageChannelInitializer);
+  window.addEventListener('load', () => console.log("iframe loaded"))
+
+  async function onClick(){
+    console.log("iframe making request")
+    //makeAjaxCall("functionName", "Outbound message body").then(response => console.log("iframe got response: " + response))
+
+    // -or-
+    console.log("Got response: " + await makeAjaxCall("functionName", "Outbound message body"))
   }
  
   //dispatched incomming message from mobile client by routing responses to the correct callback
@@ -55,8 +57,9 @@
     //find the request we should respond to
     let responseItem = pendingResponseCollection.find(element => element.guid == response.guid)
 
-    //respond
+    //respond - resolve or reject
     responseItem.resolver(response.message)
+    //responseItem.rejector(response.message)
 
     var listItem = document.getElementById(response.guid);
     listItem.parentNode.removeChild(listItem);
@@ -70,7 +73,8 @@
 
   //client to wire web calling function
   function makeAjaxCall(command, message){
-    let guid = uuidv4();
+    //todo - stack overflow guid implementation
+    let guid = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 
     let listItem = document.createElement('li');
     listItem.setAttribute("id", guid);
@@ -78,21 +82,16 @@
     list.appendChild(listItem);
 
     let resolver;
-    let promise = new Promise((resolve, reject)=>{
+    let rejector;
+    let promise = new Promise((resolve, reject) => {
       resolver = (message) => resolve(message);
+      rejector = (message) => reject(message);
     });
     
-    pendingResponseCollection.push({guid, resolver});
+    pendingResponseCollection.push({guid, resolver, rejector});
     parentPort.postMessage({command, guid, message});
 
     return promise;
-  }
-
-  //todo - stack overflow guid implementation
-  function uuidv4() {
-    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-    )
   }
 
   </script>
