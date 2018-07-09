@@ -38,7 +38,7 @@
       var channel = new MessageChannel(); 
       iframePort = channel.port1 
       iframePort.onmessage = requestFromIFrame;
-      ifr.contentWindow.postMessage("establish message channel", '*', [channel.port2]);      
+      ifr.contentWindow.postMessage("mc_ns_channel", '*', [channel.port2]);      
     }
 
     function requestFromIFrame(e){
